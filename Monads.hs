@@ -49,3 +49,29 @@ instance Monad List where
   return x = Cons x Nil
   xs >>= f = concat' (fmap f xs)
 
+-- State
+
+newtype State s a = State { runState :: (s -> (a, s)) }
+
+get :: State s s
+get = State $ \s -> (s, s)
+
+set :: State s ()
+set = State $ \s -> ((), s)
+
+instance Functor (State s) where
+  fmap f (State x) = State $ \s -> let (a, s') = x s in (f a, s')
+
+instance Applicative (State s) where
+  pure x = State $ \s -> (x, s)
+
+  (State f) <*> (State x) =
+    State $ \s -> let (f', s1) = f s
+                      (x', s2) = x s1
+                  in  (f' x', s2)
+
+instance Monad (State s) where
+  return = pure
+
+  (State g) >>= f =
+    State $ \s -> let (x, s1) = g s in runState (f x) s1
